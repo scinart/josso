@@ -71,7 +71,7 @@ read_eip()
 
 void print_debug(struct Eipdebuginfo * info)
 {
-	cprintf("       %s:%d:\n", info->eip_file, info->eip_line);//, info.eip_fn_name, info.eip_fn_addr);
+	cprintf("       %s:%d: %.*s+%d\n", info->eip_file, info->eip_line, info->eip_fn_namelen, info->eip_fn_name, info->eip_fn_addr);
 }
 
 int
@@ -86,7 +86,8 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 			move_up_arg((uint32_t*)current_ebp, 3), move_up_arg((uint32_t*)current_ebp, 4),
 			move_up_arg((uint32_t*)current_ebp, 4), move_up_arg((uint32_t*)current_ebp, 6));
 	struct Eipdebuginfo info;
-	debuginfo_eip(current_eip, &info);
+	//debuginfo_eip(current_eip, &info);
+	debuginfo_eip(move_up_arg((uint32_t*)current_ebp, 1), &info);
 	print_debug(&info);
 	uint32_t pebp = current_ebp;
 
