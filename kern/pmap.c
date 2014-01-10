@@ -98,8 +98,22 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
+	if (n>0)
+	{
+	    result = nextfree;
+	    nextfree += n;
+	    nextfree = ROUNDUP(nextfree, PGSIZE);
 
-	return NULL;
+	    return result;
+	}
+	else if (n==0)
+	{
+	    return ROUNDUP(nextfree, PGSIZE);
+	}
+	else
+	{
+	    panic("It's impossile.");
+	}
 }
 
 // Set up a two-level page table:
@@ -144,6 +158,7 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.
 	// Your code goes here:
 
+	pages = boot_alloc(npages*sizeof(struct PageInfo));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -167,6 +182,7 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -226,6 +242,15 @@ mem_init(void)
 // allocator functions below to allocate and deallocate physical
 // memory via the page_free_list.
 //
+
+void mark_page_as_used(uintptr_t va_start, uintptr_t va_end)
+{
+	size_t i;
+	for (i=va_start/PGSIZE; i<va_end/PGSIZE; i++)
+	{
+		pages[i].pp_ref=1;
+	}
+}
 void
 page_init(void)
 {
@@ -249,8 +274,18 @@ page_init(void)
 	size_t i;
 	for (i = 0; i < npages; i++) {
 		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+	}
+	// mark if memory is out.
+	page_free_list =  NULL;
+	mark_page_as_used(0,PGSIZE);
+	mark_page_as_used(IOPHYSMEM, EXTPHYSMEM);
+	mark_page_as_used(KERNBASE, boot_alloc(0));
+	for (i = 0; i < npages; i++) {
+		if(!pages[i].pp_ref){
+			//link free_list to pages.pp_link and update page_free_list.
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
 	}
 }
 
@@ -266,7 +301,17 @@ page_init(void)
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
+	struct PageInfo * ret = page_free_list;
+	if(!ret)
+	// out of memory.
+        return NULL;
+
+    page_free_list = ret->pp_link;
 	// Fill this function in
+	if (alloc_flags & ALLOC_ZERO == ALLOC_ZERO)
+	{// ALLOC_ZERO 这货就是0x01
+		memset(page2kva(ret),0,PGSIZE);
+	}
 	return 0;
 }
 
@@ -317,7 +362,15 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	return NULL;
+	// high 12 bit.
+	unsigned h12 = PDX(va);
+	pgdir += h12;
+	pte_t * ppte = (uint32_t *)(*pgdir);
+	// mid 12 bit.
+	unsigned mid12 = PTX(va);
+	ppte += mid12;
+	return ppte;
+	//return NULL;
 }
 
 //

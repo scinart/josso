@@ -62,12 +62,18 @@ void	page_decref(struct PageInfo *pp);
 
 void	tlb_invalidate(pde_t *pgdir, void *va);
 
+/**
+  * page to physical address.
+  */
 static inline physaddr_t
 page2pa(struct PageInfo *pp)
 {
 	return (pp - pages) << PGSHIFT;
 }
 
+/**
+  * physical address to page
+  */
 static inline struct PageInfo*
 pa2page(physaddr_t pa)
 {
@@ -76,6 +82,10 @@ pa2page(physaddr_t pa)
 	return &pages[PGNUM(pa)];
 }
 
+/**
+  * page to kernel virtual address.
+  * aka. KERNBASE+physical address.
+  */
 static inline void*
 page2kva(struct PageInfo *pp)
 {
