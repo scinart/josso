@@ -28,7 +28,6 @@ static const char * const error_string[MAXERROR] =
 	[E_FAULT]	= "segmentation fault",
 };
 
-
 enum CNT_color {
 	BLACK,
 	BLUE,
@@ -40,14 +39,24 @@ enum CNT_color {
 	WHITE
 };
 
+uint16_t console_color_history[1024];
+int console_color_pos=0;
 
 static pfsetcolor set_cnt_front_color;
 static pfsetcolor set_cnt_back_color;
+static pfgetcolor get_cnt_front_color;
+static pfgetcolor get_cnt_back_color;
+static pfsetcolor set_cnt_color;
+static pfgetcolor get_cnt_color;
 
-void register_set_color_function(pfsetcolor front, pfsetcolor back)
+void register_set_color_function(pfsetcolor set_front, pfsetcolor set_back, pfgetcolor get_front, pfgetcolor get_back, pfsetcolor set_all, pfgetcolor get_all)
 {
-	set_cnt_front_color=front;
-	set_cnt_back_color=back;
+	set_cnt_front_color=set_front;
+	set_cnt_back_color=set_back;
+	get_cnt_front_color=get_front;
+	get_cnt_back_color=get_back;
+	set_cnt_color=set_all;
+	get_cnt_color=get_all;
 }
 
 /*
@@ -314,7 +323,23 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 				  case 'W':
 					  set_cnt_back_color(WHITE);
 					  break;
-			
+				  case 'Y':
+				      // as if PUSH
+				      console_color_pos++;
+				      console_color_history[console_color_pos]=get_cnt_color();
+				      break;
+				  case 'V':
+				      // as if POP
+				      if(console_color_pos>0)
+				      {
+					  set_cnt_color(console_color_history[console_color_pos]);
+					  console_color_pos--;
+				      }
+				      else
+				      {
+					  //nothing.
+				      }
+				      break;
 				  default:
 					  putch('%', putdat);
 					  putch('$', putdat);
