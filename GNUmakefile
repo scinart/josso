@@ -161,7 +161,7 @@ qemu-nox-gdb: $(IMAGES) pre-qemu
 	@echo "***"
 	@echo "*** Now run 'gdb'." 1>&2
 	@echo "***"
-	$(QEMU) -nographic $(QEMUOPTS) -S
+	$(QEMU) $(QEMUOPTS) -S
 
 print-qemu:
 	@echo $(QEMU)
