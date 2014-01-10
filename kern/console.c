@@ -10,7 +10,7 @@
 
 static void cons_intr(int (*proc)(void));
 static void cons_putc(int c);
-
+void console_color_init();
 // Stupid I/O delay routine necessitated by historical PC design flaws
 static void
 delay(void)
@@ -192,12 +192,19 @@ cga_putc(int c)
 	}
 
 	// What is the purpose of this?
+	// CRT_SIZE is (CRT_ROWS * CRT_COLS)
+	// if crt_pos >= CRT_SIZE we should scroll to next line.
 	if (crt_pos >= CRT_SIZE) {
 		int i;
 
+		// move all buffer up one line.
 		memmove(crt_buf, crt_buf + CRT_COLS, (CRT_SIZE - CRT_COLS) * sizeof(uint16_t));
+
+		// set the last line to space.
 		for (i = CRT_SIZE - CRT_COLS; i < CRT_SIZE; i++)
 			crt_buf[i] = 0x0700 | ' ';
+
+		// move up the cursor.
 		crt_pos -= CRT_COLS;
 	}
 
@@ -441,6 +448,7 @@ cons_init(void)
 	kbd_init();
 	serial_init();
 
+	console_color_init();
 	if (!serial_exists)
 		cprintf("Serial port does not exist!\n");
 }

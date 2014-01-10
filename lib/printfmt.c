@@ -28,6 +28,28 @@ static const char * const error_string[MAXERROR] =
 	[E_FAULT]	= "segmentation fault",
 };
 
+
+enum CNT_color {
+	BLACK,
+	BLUE,
+	GREEN,
+	CYAN,
+	RED,
+	PURPLE,
+	ORANGE,
+	WHITE
+};
+
+
+static pfsetcolor set_cnt_front_color;
+static pfsetcolor set_cnt_back_color;
+
+void register_set_color_function(pfsetcolor front, pfsetcolor back)
+{
+	set_cnt_front_color=front;
+	set_cnt_back_color=back;
+}
+
 /*
  * Print a number (base <= 16) in reverse order,
  * using specified putch function and associated pointer putdat.
@@ -206,10 +228,9 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		// (unsigned) octal
 		case 'o':
 			// Replace this with your code.
-			putch('X', putdat);
-			putch('X', putdat);
-			putch('X', putdat);
-			break;
+			num = getuint(&ap, lflag);
+			base = 8;
+			goto number;
 
 		// pointer
 		case 'p':
@@ -233,6 +254,74 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			putch(ch, putdat);
 			break;
 
+		case '$':
+			(ch = *(unsigned char *) fmt++);
+			if (ch == '\0')
+			{
+				putch('%', putdat);
+				putch('$', putdat);
+				break;
+			}
+			else
+			{
+				switch (ch)
+				{
+				  case 'a':
+					  set_cnt_front_color(BLACK);
+					  break;
+				  case 'b':
+					  set_cnt_front_color(BLUE);
+					  break;
+				  case 'g':
+					  set_cnt_front_color(GREEN);
+					  break;
+				  case 'c':
+					  set_cnt_front_color(CYAN);
+					  break;
+				  case 'r':
+					  set_cnt_front_color(RED);
+					  break;
+				  case 'p':
+					  set_cnt_front_color(PURPLE);
+					  break;
+				  case 'o':
+					  set_cnt_front_color(ORANGE);
+					  break;
+				  case 'w':
+					  set_cnt_front_color(WHITE);
+					  break;
+				  case 'A':
+					  set_cnt_back_color(BLACK);
+					  break;
+				  case 'B':
+					  set_cnt_back_color(BLUE);
+					  break;
+				  case 'G':
+					  set_cnt_back_color(GREEN);
+					  break;
+				  case 'C':
+					  set_cnt_back_color(CYAN);
+					  break;
+				  case 'R':
+					  set_cnt_back_color(RED);
+					  break;
+				  case 'P':
+					  set_cnt_back_color(PURPLE);
+					  break;
+				  case 'O':
+					  set_cnt_back_color(ORANGE);
+					  break;
+				  case 'W':
+					  set_cnt_back_color(WHITE);
+					  break;
+			
+				  default:
+					  putch('%', putdat);
+					  putch('$', putdat);
+					  putch(ch, putdat);
+				}
+				break;
+			}
 		// unrecognized escape sequence - just print it literally
 		default:
 			putch('%', putdat);

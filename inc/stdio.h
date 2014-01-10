@@ -7,6 +7,8 @@
 #define NULL	((void *) 0)
 #endif /* !NULL */
 
+typedef void(*pfsetcolor)(int);
+
 // lib/stdio.c
 void	cputchar(int c);
 int	getchar(void);
@@ -17,6 +19,7 @@ void	printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);
 void	vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list);
 int	snprintf(char *str, int size, const char *fmt, ...);
 int	vsnprintf(char *str, int size, const char *fmt, va_list);
+void	register_set_color_function(pfsetcolor front, pfsetcolor back);
 
 // lib/printf.c
 int	cprintf(const char *fmt, ...);
