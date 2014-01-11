@@ -35,7 +35,9 @@ _paddr(const char *file, int line, void *kva)
 /* This macro takes a physical address and returns the corresponding kernel
  * virtual address.  It panics if you pass an invalid physical address. */
 #define KADDR(pa) _kaddr(__FILE__, __LINE__, pa)
-
+/**
+  * physical address to kernel virtual address.
+  */
 static inline void*
 _kaddr(const char *file, int line, physaddr_t pa)
 {

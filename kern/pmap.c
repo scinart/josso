@@ -103,7 +103,6 @@ boot_alloc(uint32_t n)
 	    result = nextfree;
 	    nextfree += n;
 	    nextfree = ROUNDUP(nextfree, PGSIZE);
-
 	    return result;
 	}
 	else if (n==0)
@@ -160,6 +159,7 @@ mem_init(void)
 
 	pages = boot_alloc(npages*sizeof(struct PageInfo));
 
+	// NOW WE WON'T USE BOOT_ALLOC
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
@@ -171,8 +171,8 @@ mem_init(void)
 
 	check_page_alloc();
 
-
 	check_page();
+
 
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
@@ -369,37 +369,57 @@ page_decref(struct PageInfo* pp)
 //
 
 #define PAGE_PRESENT(page_some_entry) ((page_some_entry)&PTE_P)
+#define DEBUG_PGDIR_WALK
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
+#ifdef DEBUG_PGDIR_WALK
+	cprintf("%$W%$oPgdir_walking pde_t*:%p, va*:%p, cr:%d\n", pgdir, va, create);
+#endif // DEBUG_PGDIR_WALK
     pde_t * pgdir_backup = pgdir;
 	// Fill this function in
 	// high 12 bit.
 	unsigned h12 = PDX(va);
 	pgdir += h12;
 	pde_t pde = *pgdir;
-
+#ifdef DEBUG_PGDIR_WALK
+    cprintf("GLOBAL: pgdir:%p, PDE is %p, %3x %3x %4x\n", pgdir, (*pgdir), PDX(*pgdir), PTX(*pgdir), (*pgdir)&0xFFF);
+#endif // DEBUG_PGDIR_WALK
 	if (PAGE_PRESENT(pde))
     {
-        pte_t * ppte = (uint32_t *)(pde);
+        //wrong: no pa to va: pte_t * ppte = (uint32_t *)(pde);
+        pte_t * ppte = KADDR(pde);
 		// mid 12 bit.
 		unsigned mid12 = PTX(va);
 		ppte += mid12;
+#ifdef DEBUG_PGDIR_WALK
+		cprintf("IF: ppte:%p, PTE is %p, %3x %3x %4x\n", ppte, (*ppte), PDX(*ppte), PTX(*ppte), (*ppte)&0xFFF);
+#endif // DEBUG_PGDIR_WALK
 		return ppte;
     }
     else if (create)
     {
         struct PageInfo* ppi = page_alloc(ALLOC_ZERO);
 		if(!ppi) // page alloc failed.
+		{
 			return NULL;
-        size_t* second_page_table=boot_alloc(PGSIZE);
+		}
+		//todo:
         //boot_map_region(pgdir,second_page_table,PGSIZE, page2pa(ppi),PTE_W|PTE_U);
 		(*pgdir) = ((page2pa(ppi)) | PTE_P|PTE_W|PTE_U);
-		pte_t * ppte = (uint32_t *)(pde);
+		pte_t * ppte = (uint32_t *)(page2kva(ppi));
 		ppte += PTX(va);
+		ppi->pp_ref++;
+#ifdef DEBUG_PGDIR_WALK
+		cprintf("ELSE: pgdir:%p, PDE is %p, %3x %3x %4x\n", pgdir, (*pgdir), PDX(*pgdir), PTX(*pgdir), (*pgdir)&0xFFF);
+		cprintf("ELSE: ppte:%p, PTE is %p, %3x %3x %4x\n", ppte, (*ppte), PDX(*ppte), PTX(*ppte), (*ppte)&0xFFF);
+#endif // DEBUG_PGDIR_WALK
 		return ppte;
     }
-	else return NULL;
+	else
+	{
+		return NULL;
+	}
 }
 
 //
@@ -458,7 +478,29 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
+	// assert(page_insert(kern_pgdir, pp2, (void*) PGSIZE, PTE_W) == 0);
 	// Fill this function in
+	int create=1;
+	pte_t* ppte = pgdir_walk(pgdir, va, create);
+
+	if(!ppte)
+        return -E_NO_MEM;
+
+
+	if(PAGE_PRESENT(*ppte))
+	{
+		if(va==(void*)PGSIZE) panic("tnshstnh");
+		page_remove(pgdir, va);
+	}
+	if(va==(void*)PGSIZE){
+		// problem
+		*ppte=page2pa(pp)|perm|PTE_P;
+		pp->pp_ref++;
+	} else{
+		*ppte=page2pa(pp)|perm|PTE_P;
+		pp->pp_ref++;
+	}
+
 	return 0;
 }
 
@@ -786,12 +828,13 @@ check_page(void)
 	assert(check_va2pa(kern_pgdir, 0x0) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
 	assert(pp0->pp_ref == 1);
-
+	// panic("so far so good. great");
 	// should be able to map pp2 at PGSIZE because pp0 is already allocated for page table
 	assert(page_insert(kern_pgdir, pp2, (void*) PGSIZE, PTE_W) == 0);
+	// panic("so far so good. passed, due to a bug of wrongly converting va to pa.");
 	assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
-
+	panic("so far so good. ");
 	// should be no free memory
 	assert(!page_alloc(0));
 
