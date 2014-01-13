@@ -388,7 +388,8 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	if (PAGE_PRESENT(pde))
     {
         //wrong: no pa to va: pte_t * ppte = (uint32_t *)(pde);
-        pte_t * ppte = KADDR(pde);
+        //wrong: no set zero of permission bits: pte_t * ppte = KADDR(pde);
+		pte_t * ppte = KADDR(PTE_ADDR(pde));
 		// mid 12 bit.
 		unsigned mid12 = PTX(va);
 		ppte += mid12;
@@ -404,8 +405,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		{
 			return NULL;
 		}
-		//todo:
-        //boot_map_region(pgdir,second_page_table,PGSIZE, page2pa(ppi),PTE_W|PTE_U);
+		//todo?: //boot_map_region(pgdir,second_page_table,PGSIZE, page2pa(ppi),PTE_W|PTE_U);
 		(*pgdir) = ((page2pa(ppi)) | PTE_P|PTE_W|PTE_U);
 		pte_t * ppte = (uint32_t *)(page2kva(ppi));
 		ppte += PTX(va);
@@ -489,11 +489,21 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 
 	if(PAGE_PRESENT(*ppte))
 	{
-		if(va==(void*)PGSIZE) panic("tnshstnh");
+		//if(va==(void*)PGSIZE) panic("tnshstnh");
 		page_remove(pgdir, va);
 	}
+	// if pp is already mapped and ref is only one,
+	// then after page_remove it is free.
+	// it's gonna mapped so it's not free actually.
+	// I didn't find "the elegant way."
+	if (page_free_list==pp)
+	{
+		page_free_list = pp->pp_link;
+	}
+	// if freed pp pp should not be in the free list.
 	if(va==(void*)PGSIZE){
 		// problem
+		cprintf("inserting va*:%p to ppte:%p page %d\n", va, ppte, pp-pages);
 		*ppte=page2pa(pp)|perm|PTE_P;
 		pp->pp_ref++;
 	} else{
@@ -546,7 +556,15 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
+	//todo: here.
 	// Fill this function in
+	// unmapping pp1 at 0 should keep pp1 at PGSIZE
+	// page_remove(kern_pgdir, 0x0);
+	// assert(check_va2pa(kern_pgdir, 0x0) == ~0);
+	// assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp1));
+	// assert(pp1->pp_ref == 1);
+	// assert(pp2->pp_ref == 0);
+
 	struct PageInfo * ppi;
 	pte_t * ppte;
 	ppi = page_lookup(pgdir, va, &ppte);
@@ -776,11 +794,13 @@ static physaddr_t
 check_va2pa(pde_t *pgdir, uintptr_t va)
 {
 	pte_t *p;
-
+	cprintf("&kern_pgdir=%p, ", pgdir);
 	pgdir = &pgdir[PDX(va)];
+	cprintf("&pgdir=%p, ", pgdir);
 	if (!(*pgdir & PTE_P))
 		return ~0;
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
+	cprintf("p is %p\n", p);
 	if (!(p[PTX(va)] & PTE_P))
 		return ~0;
 	return PTE_ADDR(p[PTX(va)]);
@@ -832,9 +852,10 @@ check_page(void)
 	// should be able to map pp2 at PGSIZE because pp0 is already allocated for page table
 	assert(page_insert(kern_pgdir, pp2, (void*) PGSIZE, PTE_W) == 0);
 	// panic("so far so good. passed, due to a bug of wrongly converting va to pa.");
+	// cprintf("%p:::%p\n", check_va2pa(kern_pgdir, PGSIZE), page2pa(pp2));
 	assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
-	panic("so far so good. ");
+	// panic("so far so good. awesome.");
 	// should be no free memory
 	assert(!page_alloc(0));
 
@@ -842,11 +863,11 @@ check_page(void)
 	assert(page_insert(kern_pgdir, pp2, (void*) PGSIZE, PTE_W) == 0);
 	assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
-
+	// panic("so far so good. one pass.");
 	// pp2 should NOT be on the free list
 	// could happen in ref counts are handled sloppily in page_insert
 	assert(!page_alloc(0));
-
+	// panic("so far so good. page_insert already mapped case.");
 	// check that pgdir_walk returns a pointer to the pte
 	ptep = (pte_t *) KADDR(PTE_ADDR(kern_pgdir[PDX(PGSIZE)]));
 	assert(pgdir_walk(kern_pgdir, (void*)PGSIZE, 0) == ptep+PTX(PGSIZE));
