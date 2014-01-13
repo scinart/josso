@@ -116,7 +116,15 @@ env_init(void)
 {
 	// Set up envs array
 	// LAB 3: Your code here.
-
+	int i=0;
+	env_free_list = 0;
+	for (i=NENV-1; i>=0; i--)
+	{
+		envs[i].env_status = ENV_FREE;
+		envs[i].env_id = 0;
+		envs[i].env_link = env_free_list;
+		env_free_list = &envs[i];
+	}
 	// Per-CPU part of the initialization
 	env_init_percpu();
 }
@@ -177,9 +185,20 @@ env_setup_vm(struct Env *e)
 	//	is an exception -- you need to increment env_pgdir's
 	//	pp_ref for env_free to work correctly.
 	//    - The functions in kern/pmap.h are handy.
-
+	
 	// LAB 3: Your code here.
-
+	e->env_pgdir = page2kva(p);
+	//cprintf("envid:%d pgdir:%p\n", e->env_id, e->env_pgdir);
+	uintptr_t * ppde = &kern_pgdir[PDX(UTOP)];
+	uintptr_t * eppde = &e->env_pgdir[PDX(UTOP)];
+	// fixme: shouldn't use magic number.
+	while(ppde != kern_pgdir+1024)
+	{
+		*eppde=*ppde;
+		ppde++;
+		eppde++;
+	}
+	
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_P | PTE_U;
@@ -267,6 +286,25 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+
+	// 不想在ELF这浪费时间了。
+	// 加载器与链接器。呵呵。
+	// ref to 北大报告
+	// LAB 3: Your code here.
+	// @huangruizhe 20120410
+	struct PageInfo *p;
+	uint32_t offset = (uint32_t)ROUNDDOWN(va, PGSIZE);
+	uint32_t upper_bound = offset + len;
+	int r;
+	for(; offset < upper_bound; offset += PGSIZE)
+	{
+		p = page_alloc(0);
+		if(p == NULL)
+			panic("kern/env.c/region_alloc: out of memory.\n");
+		r = page_insert(e->env_pgdir, p, (void *)offset, PTE_U | PTE_W);
+		if(r != 0)
+			panic("kern/env.c/region_alloc: %e\n", r);
+	}
 }
 
 //
@@ -322,12 +360,34 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	//  to make sure that the environment starts executing there.
 	//  What?  (See env_run() and env_pop_tf() below.)
 
-	// LAB 3: Your code here.
+	// 直接放弃了，ref to https://github.com/benwei/MIT-JOS.git
+	struct Elf *elfhdr = (struct Elf *) binary;
+	struct Proghdr *ph, *eph;
+	if (elfhdr->e_magic != ELF_MAGIC)
+		panic("elf header's magic is not correct\n");
+	ph = (struct Proghdr *) ((uint8_t *) elfhdr + elfhdr->e_phoff);
+	eph = ph + elfhdr->e_phnum;
 
+	lcr3(PADDR(e->env_pgdir));
+
+	for ( ;ph < eph; ph++) {
+		if (ph->p_type != ELF_PROG_LOAD)
+			continue;
+		if (ph->p_filesz > ph->p_memsz)
+			panic("file size is great than memory size\n");
+		region_alloc(e, (void *) ph->p_va, ph->p_memsz);
+		memmove((void *) ph->p_va, binary+ph->p_offset, ph->p_filesz);
+		memset((void *) ph->p_va + ph->p_filesz, 0, (ph->p_memsz - ph->p_filesz));
+	}
+
+	e->env_tf.tf_eip = elfhdr->e_entry;
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
+	region_alloc(e, (void *) USTACKTOP - PGSIZE, PGSIZE);
+
+	lcr3(PADDR(kern_pgdir));
 }
 
 //
@@ -341,6 +401,13 @@ void
 env_create(uint8_t *binary, size_t size, enum EnvType type)
 {
 	// LAB 3: Your code here.
+	struct Env* env;
+	int r = env_alloc(&env, 0);
+	if (r != 0)
+		panic("All in all something is wrong.");
+	cprintf("\n%p\n\n", env->env_pgdir);
+	env->env_type = type;
+	load_icode(env, binary, size);
 }
 
 //
@@ -456,7 +523,14 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
-
-	panic("env_run not yet implemented");
+	if (curenv)
+		curenv->env_status = ENV_RUNNABLE;
+	curenv = e;
+	assert(e->env_status = ENV_RUNNABLE);
+	e->env_status = ENV_RUNNING;
+	e->env_runs++;
+	lcr3(PADDR(e->env_pgdir));
+	env_pop_tf(&e->env_tf);	
+	//panic("env_run not yet implemented");
 }
 

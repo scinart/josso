@@ -193,6 +193,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		// error message
 		case 'e':
+			cprintf("%$Y%$R%$w");
 			err = va_arg(ap, int);
 			if (err < 0)
 				err = -err;
@@ -200,6 +201,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 				printfmt(putch, putdat, "error %d", err);
 			else
 				printfmt(putch, putdat, "%s", p);
+			cprintf("%$V");
 			break;
 
 		// string
