@@ -100,18 +100,18 @@ boot_alloc(uint32_t n)
 	// LAB 2: Your code here.
 	if (n>0)
 	{
-	    result = nextfree;
-	    nextfree += n;
-	    nextfree = ROUNDUP(nextfree, PGSIZE);
-	    return result;
+		result = nextfree;
+		nextfree += n;
+		nextfree = ROUNDUP(nextfree, PGSIZE);
+		return result;
 	}
 	else if (n==0)
 	{
-	    return ROUNDUP(nextfree, PGSIZE);
+		return ROUNDUP(nextfree, PGSIZE);
 	}
 	else
 	{
-	    panic("It's impossile.");
+		panic("It's impossile.");
 	}
 }
 
@@ -173,7 +173,6 @@ mem_init(void)
 
 	check_page();
 
-
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
 
@@ -184,7 +183,7 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-
+	boot_map_region(kern_pgdir, UPAGES, ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE), PADDR(pages), PTE_U); //ref to 北大报告。
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -197,7 +196,8 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
-
+	boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W); //ref to 北大报告。
+	
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
@@ -206,7 +206,8 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-
+	boot_map_region(kern_pgdir, KERNBASE, 0x10000000, 0, PTE_W); //ref to 北大报告。
+		
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -245,7 +246,7 @@ mem_init(void)
 // memory via the page_free_list.
 //
 
-void mark_page_as_used(uintptr_t va_start, uintptr_t va_end)
+void mark_page_as_used(physaddr_t va_start, physaddr_t va_end)
 {
 	size_t i;
 	assert(va_start <= va_end);
@@ -310,9 +311,9 @@ page_alloc(int alloc_flags)
 	struct PageInfo * ret = page_free_list;
 	if(!ret)
 		// out of memory.
-        return NULL;
+		return NULL;
 
-    page_free_list = ret->pp_link;
+	page_free_list = ret->pp_link;
 	// Fill this function in
 	if ((alloc_flags & ALLOC_ZERO) == ALLOC_ZERO)
 	{// ALLOC_ZERO 这货就是0x01
@@ -328,10 +329,10 @@ page_alloc(int alloc_flags)
 void
 page_free(struct PageInfo *pp)
 {
-    assert(!pp->pp_ref);
+	assert(!pp->pp_ref);
 	// Fill this function in
 	pp->pp_link = page_free_list;
-    page_free_list = pp;
+	page_free_list = pp;
 }
 
 //
@@ -377,19 +378,19 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 #ifdef DEBUG_PGDIR_WALK
 	cprintf("%$W%$oPgdir_walking pde_t*:%p, va*:%p, cr:%d\n", pgdir, va, create);
 #endif // DEBUG_PGDIR_WALK
-    pde_t * pgdir_backup = pgdir;
+	pde_t * pgdir_backup = pgdir;
 	// Fill this function in
 	// high 12 bit.
 	unsigned h12 = PDX(va);
 	pgdir += h12;
 	pde_t pde = *pgdir;
 #ifdef DEBUG_PGDIR_WALK
-    cprintf("GLOBAL: pgdir:%p, PDE is %p, %3x %3x %4x\n", pgdir, (*pgdir), PDX(*pgdir), PTX(*pgdir), (*pgdir)&0xFFF);
+	cprintf("GLOBAL: pgdir:%p, PDE is %p, %3x %3x %4x\n", pgdir, (*pgdir), PDX(*pgdir), PTX(*pgdir), (*pgdir)&0xFFF);
 #endif // DEBUG_PGDIR_WALK
 	if (PAGE_PRESENT(pde))
-    {
-        //wrong: no pa to va: pte_t * ppte = (uint32_t *)(pde);
-        //wrong: no set zero of permission bits: pte_t * ppte = KADDR(pde);
+	{
+		//wrong: no pa to va: pte_t * ppte = (uint32_t *)(pde);
+		//wrong: no set zero of permission bits: pte_t * ppte = KADDR(pde);
 		pte_t * ppte = KADDR(PTE_ADDR(pde));
 		// mid 12 bit.
 		unsigned mid12 = PTX(va);
@@ -398,10 +399,10 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		cprintf("IF: ppte:%p, PTE is %p, %3x %3x %4x\n", ppte, (*ppte), PDX(*ppte), PTX(*ppte), (*ppte)&0xFFF);
 #endif // DEBUG_PGDIR_WALK
 		return ppte;
-    }
-    else if (create)
-    {
-        struct PageInfo* ppi = page_alloc(ALLOC_ZERO);
+	}
+	else if (create)
+	{
+		struct PageInfo* ppi = page_alloc(ALLOC_ZERO);
 		if(!ppi) // page alloc failed.
 		{
 			return NULL;
@@ -416,7 +417,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		cprintf("ELSE: ppte:%p, PTE is %p, %3x %3x %4x\n", ppte, (*ppte), PDX(*ppte), PTX(*ppte), (*ppte)&0xFFF);
 #endif // DEBUG_PGDIR_WALK
 		return ppte;
-    }
+	}
 	else
 	{
 		return NULL;
@@ -440,7 +441,7 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	assert(size==ROUNDUP(size, PGSIZE));
 	int page_s = size/PGSIZE;
 	int i, create=1;
-	for (i=0; i<page_s; i++)
+	for (i=0; i<page_s; i++, pa+=PGSIZE, va+=PGSIZE)//之前少了p(v)a+=PGSIZE也能过？
 	{
 		pte_t * ppte = pgdir_walk(pgdir, (void*)va, create);
 		if(ppte)
@@ -485,7 +486,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	pte_t* ppte = pgdir_walk(pgdir, va, create);
 
 	if(!ppte)
-        return -E_NO_MEM;
+		return -E_NO_MEM;
 
 
 	if(PAGE_PRESENT(*ppte))
@@ -498,19 +499,13 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	// it's gonna mapped so it's not free actually.
 	// I didn't find "the elegant way."
 	if (page_free_list==pp)
-	{
+	{// if freed pp pp should not be in the free list.
 		page_free_list = pp->pp_link;
 	}
-	// if freed pp pp should not be in the free list.
-	if(va==(void*)PGSIZE){
-		// problem
-		cprintf("inserting va*:%p to ppte:%p page %d\n", va, ppte, pp-pages);
-		*ppte=page2pa(pp)|perm|PTE_P;
-		pp->pp_ref++;
-	} else{
-		*ppte=page2pa(pp)|perm|PTE_P;
-		pp->pp_ref++;
-	}
+	
+
+	*ppte=page2pa(pp)|perm|PTE_P;
+	pp->pp_ref++;
 
 	return 0;
 }
@@ -532,10 +527,10 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	// Fill this function in
 	pte_t * result = pgdir_walk(pgdir, va, 0);
 	if(result)
-    {
-        *pte_store = result;
-        return pa2page(*result);
-    }
+	{
+		*pte_store = result;
+		return pa2page(*result);
+	}
 	return NULL;
 }
 
@@ -557,29 +552,21 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
-	//todo: here.
-	// Fill this function in
-	// unmapping pp1 at 0 should keep pp1 at PGSIZE
-	// page_remove(kern_pgdir, 0x0);
-	// assert(check_va2pa(kern_pgdir, 0x0) == ~0);
-	// assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp1));
-	// assert(pp1->pp_ref == 1);
-	// assert(pp2->pp_ref == 0);
-
 	struct PageInfo * ppi;
 	pte_t * ppte;
 	ppi = page_lookup(pgdir, va, &ppte);
 	// cprintf("page_remove pgdir: %p, va: %p, ppi is #%d:%d ref, ppte: %p\n", pgdir, va, ppi-pages,ppi->pp_ref, ppte);
 	if(ppi)
-    {
-        page_decref(ppi);
+	{
+		page_decref(ppi);
 		*ppte = 0;
-        if (ppi == page_free_list)
-        { // page removed.
+		tlb_invalidate(pgdir, va);
+		if (ppi == page_free_list)
+		{ // page removed.
 			//wrong: should be set zero anyway: *ppte=0; 
-            tlb_invalidate(pgdir, va);
-        }
-    }
+			//wrong: should be tlb_invalidate anyway: tlb_invalidate(pgdir, va); //ref to 北大报告。
+		}
+	}
 }
 
 //
@@ -758,7 +745,6 @@ check_kern_pgdir(void)
 	for (i = 0; i < n; i += PGSIZE)
 		assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
 
-
 	// check phys mem
 	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
 		assert(check_va2pa(pgdir, KERNBASE + i) == i);
@@ -803,13 +789,13 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 #ifdef CHECK_VA2PA
 	cprintf("check_va2pa: &kern_pgdir=%p, va is %p ", pgdir, va);
 	cprintf("&pgdir=%p, ", pgdir);
-#endif;
+#endif
 	if (!(*pgdir & PTE_P))
 		return ~0;
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
 #ifdef CHECK_VA2PA
 	cprintf("p is %p\n", p);
-#endif;
+#endif
 	if (!(p[PTX(va)] & PTE_P))
 		return ~0;
 	return PTE_ADDR(p[PTX(va)]);
@@ -1007,3 +993,11 @@ check_page_installed_pgdir(void)
 
 	cprintf("check_page_installed_pgdir() succeeded!\n");
 }
+
+
+
+
+
+/* Local Variables: */
+/* eval:(progn (hs-minor-mode t) (let ((hs-state '((24378 29276 hs) (23948 24306 hs) (20797 22365 hs) (17391 17945 hs) (15045 16021 hs) (14232 14627 hs) (12671 14227 hs) (11526 12494 hs) (11414 11456 hs) (11286 11374 hs) (816 873 hs) (914 1537 hs) (2662 3521 hs) (8291 8761 hs) (8827 8942 hs) (8966 10356 hs) (10361 10699 hs) (10747 11024 hs) (11029 11135 hs) (11173 11281 hs))) (the-mark 'scinartspecialmarku2npbmfydfnwzwnpywxnyxjr)) (dolist (i hs-state) (if (car i) (progn (goto-char (car i)) (hs-find-block-beginning) (hs-hide-block-at-point nil nil))))) (goto-char 8226) (recenter-top-bottom)) */
+/* End: */
