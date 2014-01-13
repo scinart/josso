@@ -36,7 +36,9 @@ _paddr(const char *file, int line, void *kva)
 /* This macro takes a physical address and returns the corresponding kernel
  * virtual address.  It panics if you pass an invalid physical address. */
 #define KADDR(pa) _kaddr(__FILE__, __LINE__, pa)
-
+/**
+  * physical address to kernel virtual address.
+  */
 static inline void*
 _kaddr(const char *file, int line, physaddr_t pa)
 {
@@ -66,12 +68,18 @@ void	tlb_invalidate(pde_t *pgdir, void *va);
 int	user_mem_check(struct Env *env, const void *va, size_t len, int perm);
 void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
 
+/**
+  * page to physical address.
+  */
 static inline physaddr_t
 page2pa(struct PageInfo *pp)
 {
 	return (pp - pages) << PGSHIFT;
 }
 
+/**
+  * physical address to page
+  */
 static inline struct PageInfo*
 pa2page(physaddr_t pa)
 {
@@ -80,6 +88,10 @@ pa2page(physaddr_t pa)
 	return &pages[PGNUM(pa)];
 }
 
+/**
+  * page to kernel virtual address.
+  * aka. KERNBASE+physical address.
+  */
 static inline void*
 page2kva(struct PageInfo *pp)
 {
