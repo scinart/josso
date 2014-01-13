@@ -370,6 +370,7 @@ page_decref(struct PageInfo* pp)
 
 #define PAGE_PRESENT(page_some_entry) ((page_some_entry)&PTE_P)
 #define DEBUG_PGDIR_WALK
+#undef DEBUG_PGDIR_WALK
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
@@ -568,12 +569,14 @@ page_remove(pde_t *pgdir, void *va)
 	struct PageInfo * ppi;
 	pte_t * ppte;
 	ppi = page_lookup(pgdir, va, &ppte);
+	// cprintf("page_remove pgdir: %p, va: %p, ppi is #%d:%d ref, ppte: %p\n", pgdir, va, ppi-pages,ppi->pp_ref, ppte);
 	if(ppi)
     {
         page_decref(ppi);
+		*ppte = 0;
         if (ppi == page_free_list)
         { // page removed.
-            *ppte=0;
+			//wrong: should be set zero anyway: *ppte=0; 
             tlb_invalidate(pgdir, va);
         }
     }
@@ -790,17 +793,23 @@ check_kern_pgdir(void)
 // this functionality for us!  We define our own version to help check
 // the check_kern_pgdir() function; it shouldn't be used elsewhere.
 
+#define CHECK_VA2PA
+#undef CHECK_VA2PA
 static physaddr_t
 check_va2pa(pde_t *pgdir, uintptr_t va)
 {
 	pte_t *p;
-	cprintf("&kern_pgdir=%p, ", pgdir);
 	pgdir = &pgdir[PDX(va)];
+#ifdef CHECK_VA2PA
+	cprintf("check_va2pa: &kern_pgdir=%p, va is %p ", pgdir, va);
 	cprintf("&pgdir=%p, ", pgdir);
+#endif;
 	if (!(*pgdir & PTE_P))
 		return ~0;
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
+#ifdef CHECK_VA2PA
 	cprintf("p is %p\n", p);
+#endif;
 	if (!(p[PTX(va)] & PTE_P))
 		return ~0;
 	return PTE_ADDR(p[PTX(va)]);
