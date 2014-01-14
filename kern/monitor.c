@@ -6,6 +6,7 @@
 #include <inc/memlayout.h>
 #include <inc/assert.h>
 #include <inc/x86.h>
+#include <inc/mmu.h>
 #include <kern/env.h>
 
 #include <kern/console.h>
@@ -27,6 +28,7 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "ct", "Continue", mon_continue },
+	{ "si", "Single Step", mon_step },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -114,11 +116,27 @@ int mon_continue(int argc, char** argv, struct Trapframe *tf)
 {
 	if (curenv && curenv->env_status == ENV_RUNNING)
 	{
+		(curenv->env_tf).tf_eflags &= ~FL_TF; //always clear bit.
 		env_run(curenv);
 	}
 	else
 	{
 		cprintf("curenv not RUNNING. Hence not run it\n");
+	}
+	return 0;
+}
+
+int mon_step(int argc, char** argv, struct Trapframe* tf)
+{
+	// ref to http://blog.csdn.net/songzheng1986/article/details/4437027
+	if (curenv && curenv->env_status == ENV_RUNNING)//copied from mon_continue.
+	{
+		(curenv->env_tf).tf_eflags |= FL_TF;
+		env_run(curenv);
+	}
+	else
+	{
+		cprintf("curenv not RUNNING. Hence not step\n");
 	}
 	return 0;
 }
