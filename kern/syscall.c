@@ -32,23 +32,28 @@ sys_cputs(const char *s, size_t len)
 		if (!ppte)
 		{ //secondary page table not present or page not present.
 			die = 1;
+			break;
 		}
 		else if (!PAGE_PRESENT(*ppte))
 		{
 			die = 2;
+			break;
 		}
 		else if (iter > ULIM)
 		{ // 越界了
 			die = 3;
+			break;
 		}
 		else if ((*ppte & PTE_U) == 0)
 		{ // no user permission.
 			die = 4;
+			break;
 		}
 	}
 	if (die)
 	{
-		cprintf("Memory fault #%d\n", die);
+		cprintf("Memory fault #%d, s is %p, len is %x\n", die, s, len);
+		cprintf("[%08x] user_mem_check assertion failure for va %08x\n", curenv->env_id, iter+((uintptr_t)s-start));
 		env_destroy(curenv);
 		// maybe sys_yield() later.
 		// fixme: no else clause.
