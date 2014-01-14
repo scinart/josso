@@ -6,6 +6,7 @@
 #include <inc/memlayout.h>
 #include <inc/assert.h>
 #include <inc/x86.h>
+#include <kern/env.h>
 
 #include <kern/console.h>
 #include <kern/monitor.h>
@@ -25,6 +26,7 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "ct", "Continue", mon_continue },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -105,6 +107,19 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 		pebp=*((int*)pebp);
 	}
 	cprintf("%$V\n");
+	return 0;
+}
+
+int mon_continue(int argc, char** argv, struct Trapframe *tf)
+{
+	if (curenv && curenv->env_status == ENV_RUNNING)
+	{
+		env_run(curenv);
+	}
+	else
+	{
+		cprintf("curenv not RUNNING. Hence not run it\n");
+	}
 	return 0;
 }
 

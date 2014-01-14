@@ -85,24 +85,22 @@ trap_init(void)
 	extern void mchk_entry();
 	extern void simderr_entry();
 
-    extern void syscall_entry();
-
-    // hardware interrupts
-    extern void irq0_entry();
-    extern void irq1_entry();
-    extern void irq2_entry();
-    extern void irq3_entry();
-    extern void irq4_entry();
-    extern void irq5_entry();
-    extern void irq6_entry();
-    extern void irq7_entry();
-    extern void irq8_entry();
-    extern void irq9_entry();
-    extern void irq10_entry();
-    extern void irq11_entry();
-    extern void irq12_entry();
-    extern void irq13_entry();
-    extern void irq14_entry();
+	extern void syscall_entry();// hardware interrupts
+	extern void irq0_entry();
+	extern void irq1_entry();
+	extern void irq2_entry();
+	extern void irq3_entry();
+	extern void irq4_entry();
+	extern void irq5_entry();
+	extern void irq6_entry();
+	extern void irq7_entry();
+	extern void irq8_entry();
+	extern void irq9_entry();
+	extern void irq10_entry();
+	extern void irq11_entry();
+	extern void irq12_entry();
+	extern void irq13_entry();
+	extern void irq14_entry();
 
 
 	SETGATE(idt[T_DIVIDE], 1, GD_KT, divzero_entry, 0);
@@ -141,7 +139,7 @@ trap_init(void)
 	SETGATE(idt[IRQ_OFFSET+12], 0, GD_KT, irq12_entry, 0);
 	SETGATE(idt[IRQ_OFFSET+13], 0, GD_KT, irq13_entry, 0);
 	SETGATE(idt[IRQ_OFFSET+14], 0, GD_KT, irq14_entry, 0);
-	// Per-CPU setup 
+	// Per-CPU setup
 	trap_init_percpu();
 }
 
@@ -246,7 +244,7 @@ trap_dispatch(struct Trapframe *tf)
 	  case IRQ_OFFSET + 14:
 		  //这段代码参考《微型计算机组成原理》一书吧。
 		  // outb(IO_PIC2, 0x66);
-     
+
 		  /* cprintf("IRQ_OFFSET 14 from dis "); */
 		  /* //if(envs[1].env_status==ENV_RUNNABLE) */
 		  /* if(envs[1].env_parent_id>=0) */
