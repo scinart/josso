@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="newjos" />
+		<Option makefile="GNUmakefile" />
+		<Option makefile_is_custom="1" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<MakeCommands>
+			<Build command="$make -f $makefile" />
+			<CompileFile command="" />
+			<Clean command="$make -f $makefile clean" />
+			<DistClean command="$make -f $makefile distclean$target" />
+			<AskRebuildNeeded command="" />
+			<SilentBuild command="$make -f $makefile &gt; $(CMD_NULL)" />
+		</MakeCommands>
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/newjos" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+				<MakeCommands>
+					<Build command="$make -f $makefile" />
+					<CompileFile command="" />
+					<Clean command="$make -f $makefile clean" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="" />
+					<SilentBuild command="$make -f $makefile &gt; $(CMD_NULL)" />
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="boot/boot.S" />
+		<Unit filename="boot/main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="inc/assert.h" />
+		<Unit filename="inc/elf.h" />
+		<Unit filename="inc/env.h" />
+		<Unit filename="inc/error.h" />
+		<Unit filename="inc/kbdreg.h" />
+		<Unit filename="inc/lib.h" />
+		<Unit filename="inc/memlayout.h" />
+		<Unit filename="inc/mmu.h" />
+		<Unit filename="inc/stab.h" />
+		<Unit filename="inc/stdarg.h" />
+		<Unit filename="inc/stdio.h" />
+		<Unit filename="inc/string.h" />
+		<Unit filename="inc/syscall.h" />
+		<Unit filename="inc/trap.h" />
+		<Unit filename="inc/types.h" />
+		<Unit filename="inc/x86.h" />
+		<Unit filename="kern/console.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/console.h" />
+		<Unit filename="kern/entry.S" />
+		<Unit filename="kern/entrypgdir.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/env.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/env.h" />
+		<Unit filename="kern/init.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/kclock.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/kclock.h" />
+		<Unit filename="kern/kdebug.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/kdebug.h" />
+		<Unit filename="kern/monitor.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/monitor.h" />
+		<Unit filename="kern/pmap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/pmap.h" />
+		<Unit filename="kern/printf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/syscall.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/syscall.h" />
+		<Unit filename="kern/trap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/trap.h" />
+		<Unit filename="kern/trapentry.S" />
+		<Unit filename="lib/printfmt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lib/readline.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lib/string.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Extensions>
+			<DoxyBlocks>
+				<comment_style block="0" line="0" />
+				<doxyfile_project />
+				<doxyfile_build />
+				<doxyfile_warnings />
+				<doxyfile_output />
+				<doxyfile_dot />
+				<general />
+			</DoxyBlocks>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

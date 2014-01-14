@@ -43,6 +43,12 @@ _start = RELOC(entry)
 .globl entry
 entry:
 	movw	$0x1234,0x472			# warm boot
+	# 即告诉BIOS检测程序“不要做内存检测”。
+	# 该子程序往物理内存地址0x472处写值0x1234。该位置是启动模式（reboot_mode）标志字。在启动过程中ROM
+	# BIOS会读取该启动模式标志值并根据其值来指导下一步的执行。 如果该值是0x1234，则BIOS
+	# 就会跳过内存检测过程而执行热启动（Warm-boot）过程。 如果若该值为0，则执行冷启动（Cold-boot）过程。
+	# source: http://www.oldlinux.org/oldlinux/viewthread.php?tid=6894
+	# see also: http://blog.csdn.net/otishiono/article/details/5899592
 
 	# We haven't set up virtual memory yet, so we're running from
 	# the physical address the boot loader loaded the kernel at: 1MB

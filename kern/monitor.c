@@ -6,6 +6,8 @@
 #include <inc/memlayout.h>
 #include <inc/assert.h>
 #include <inc/x86.h>
+#include <inc/mmu.h>
+#include <kern/env.h>
 
 #include <kern/console.h>
 #include <kern/monitor.h>
@@ -25,6 +27,8 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "ct", "Continue", mon_continue },
+	{ "si", "Single Step", mon_step },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -56,10 +60,84 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
+int move_up_arg(uint32_t* addr, int times)
+{
+	addr += times;
+	return (*addr);
+}
+
+int __attribute__ ((noinline))
+read_eip()
+{
+	int cur_ebp = read_ebp();
+	int eip = move_up_arg((uint32_t*)cur_ebp, 1);
+	return eip;
+}
+
+void print_debug(struct Eipdebuginfo * info)
+{
+	cprintf("       %s:%d: %.*s+%d\n", info->eip_file, info->eip_line, info->eip_fn_namelen, info->eip_fn_name, info->eip_fn_addr);
+}
+
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 	// Your code here.
+	cprintf("%$Y%$C%$RStack backtrace:\n");
+	uint32_t current_ebp = read_ebp();
+	uint32_t current_eip = read_eip();
+	cprintf("  ebp %08x  eip %08x  args %08x %08x %08x %08x %08x\n",
+			current_ebp, current_eip, move_up_arg((uint32_t*)current_ebp, 2),
+			move_up_arg((uint32_t*)current_ebp, 3), move_up_arg((uint32_t*)current_ebp, 4),
+			move_up_arg((uint32_t*)current_ebp, 4), move_up_arg((uint32_t*)current_ebp, 6));
+	struct Eipdebuginfo info;
+	//debuginfo_eip(current_eip, &info);
+	debuginfo_eip(move_up_arg((uint32_t*)current_ebp, 1), &info);
+	print_debug(&info);
+	uint32_t pebp = current_ebp;
+
+	pebp=*((uint32_t*)pebp);
+	while(pebp)
+	{
+		cprintf("  ebp %08x  eip %08x  args %08x %08x %08x %08x %08x\n",
+				pebp,
+				move_up_arg((uint32_t*)pebp, 1), move_up_arg((uint32_t*)pebp, 2),
+				move_up_arg((uint32_t*)pebp, 3), move_up_arg((uint32_t*)pebp, 4),
+				move_up_arg((uint32_t*)pebp, 4), move_up_arg((uint32_t*)pebp, 6));
+		debuginfo_eip(move_up_arg((uint32_t*)pebp, 1), &info);
+		print_debug(&info);
+		pebp=*((int*)pebp);
+	}
+	cprintf("%$V\n");
+	return 0;
+}
+
+int mon_continue(int argc, char** argv, struct Trapframe *tf)
+{
+	if (curenv && curenv->env_status == ENV_RUNNING)
+	{
+		(curenv->env_tf).tf_eflags &= ~FL_TF; //always clear bit.
+		env_run(curenv);
+	}
+	else
+	{
+		cprintf("curenv not RUNNING. Hence not run it\n");
+	}
+	return 0;
+}
+
+int mon_step(int argc, char** argv, struct Trapframe* tf)
+{
+	// ref to http://blog.csdn.net/songzheng1986/article/details/4437027
+	if (curenv && curenv->env_status == ENV_RUNNING)//copied from mon_continue.
+	{
+		(curenv->env_tf).tf_eflags |= FL_TF;
+		env_run(curenv);
+	}
+	else
+	{
+		cprintf("curenv not RUNNING. Hence not step\n");
+	}
 	return 0;
 }
 

@@ -1,6 +1,7 @@
 #include <inc/mmu.h>
 #include <inc/x86.h>
 #include <inc/assert.h>
+#include <inc/error.h>
 
 #include <kern/pmap.h>
 #include <kern/trap.h>
@@ -72,8 +73,80 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
+	extern void divzero_entry();
+	extern void debug_entry();
+	extern void nmi_entry();
+	extern void brkpt_entry();
+	extern void oflow_entry();
+	extern void bound_entry();
+	extern void illop_entry();
+	extern void device_entry();
+	extern void dblflt_entry();
+	extern void tss_entry();
+	extern void segnp_entry();
+	extern void stack_entry();
+	extern void gpflt_entry();
+	extern void pgflt_entry();
+	extern void fperr_entry();
+	extern void align_entry();
+	extern void mchk_entry();
+	extern void simderr_entry();
 
-	// Per-CPU setup 
+	extern void syscall_entry();// hardware interrupts
+	extern void irq0_entry();
+	extern void irq1_entry();
+	extern void irq2_entry();
+	extern void irq3_entry();
+	extern void irq4_entry();
+	extern void irq5_entry();
+	extern void irq6_entry();
+	extern void irq7_entry();
+	extern void irq8_entry();
+	extern void irq9_entry();
+	extern void irq10_entry();
+	extern void irq11_entry();
+	extern void irq12_entry();
+	extern void irq13_entry();
+	extern void irq14_entry();
+
+
+	SETGATE(idt[T_DIVIDE], 1, GD_KT, divzero_entry, 0);
+	SETGATE(idt[T_DEBUG], 1, GD_KT, debug_entry, 0);
+	SETGATE(idt[T_NMI], 0, GD_KT, nmi_entry, 0);
+	SETGATE(idt[T_BRKPT], 1, GD_KT, brkpt_entry, 3);
+	SETGATE(idt[T_OFLOW], 1, GD_KT, oflow_entry, 0);
+	SETGATE(idt[T_BOUND], 1, GD_KT, bound_entry, 0);
+	SETGATE(idt[T_ILLOP], 1, GD_KT, illop_entry, 0);
+	SETGATE(idt[T_DEVICE], 1, GD_KT, device_entry, 0);
+	SETGATE(idt[T_DBLFLT], 1, GD_KT, dblflt_entry, 0);
+	SETGATE(idt[T_TSS], 1, GD_KT, tss_entry, 0);
+	SETGATE(idt[T_SEGNP], 1, GD_KT, segnp_entry, 0);
+	SETGATE(idt[T_STACK], 1, GD_KT, stack_entry, 0);
+	SETGATE(idt[T_GPFLT], 1, GD_KT, gpflt_entry, 0);
+	SETGATE(idt[T_PGFLT], 1, GD_KT, pgflt_entry, 0);
+	SETGATE(idt[T_FPERR], 1, GD_KT, fperr_entry, 0);
+	SETGATE(idt[T_ALIGN], 1, GD_KT, align_entry, 0);
+	SETGATE(idt[T_MCHK], 1, GD_KT, mchk_entry, 0);
+	SETGATE(idt[T_SIMDERR], 1, GD_KT, simderr_entry, 0);
+
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, syscall_entry, 3);
+
+	SETGATE(idt[IRQ_OFFSET], 0, GD_KT, irq0_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+1], 0, GD_KT, irq1_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+2], 0, GD_KT, irq2_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+3], 0, GD_KT, irq3_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+4], 0, GD_KT, irq4_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+5], 0, GD_KT, irq5_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+6], 0, GD_KT, irq6_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+7], 0, GD_KT, irq7_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+8], 0, GD_KT, irq8_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+9], 0, GD_KT, irq9_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+10], 0, GD_KT, irq10_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+11], 0, GD_KT, irq11_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+12], 0, GD_KT, irq12_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+13], 0, GD_KT, irq13_entry, 0);
+	SETGATE(idt[IRQ_OFFSET+14], 0, GD_KT, irq14_entry, 0);
+	// Per-CPU setup
 	trap_init_percpu();
 }
 
@@ -187,6 +260,55 @@ trap_dispatch(struct Trapframe *tf)
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
 
+	// 此处是lab 3 4 5混在一起了，因为是重做的缘故。
+	struct PushRegs* regs;
+	switch (tf->tf_trapno)
+	{
+	  case T_SYSCALL:
+		  regs = &(tf->tf_regs);
+		  regs->reg_eax = syscall(regs->reg_eax, regs->reg_edx,
+								 regs->reg_ecx, regs->reg_ebx, regs->reg_edi, regs->reg_esi);
+		  return;
+	  case T_PGFLT:
+		  page_fault_handler(tf);
+		  return;
+	  case T_BRKPT:
+		  monitor(tf);
+		  return;
+	  case T_DEBUG:
+		  monitor(tf);
+		  return;
+	  case IRQ_OFFSET:
+		  // clock interrupt
+		  // sched_yield(); not defined yet.
+		  break;
+	  case IRQ_OFFSET + 1:
+		  //kbd_intr();
+		  return;
+	  case IRQ_OFFSET + 14:
+		  //这段代码参考《微型计算机组成原理》一书吧。
+		  // outb(IO_PIC2, 0x66);
+
+		  /* cprintf("IRQ_OFFSET 14 from dis "); */
+		  /* //if(envs[1].env_status==ENV_RUNNABLE) */
+		  /* if(envs[1].env_parent_id>=0) */
+		  /* { */
+		  /* 	  envs[1].env_parent_id++; */
+		  /* 	  cprintf("in IF @\n"); */
+		  /* } */
+		  /* else */
+		  /* { */
+		  /* 	  envs[1].env_parent_id++; */
+		  /* 	  cprintf("IN ELSE@\n"); */
+		  /* 	  envs[1].env_status=ENV_RUNNABLE; */
+		  /* 	  sched_yield(); */
+		  /* 	  //env_run(&envs[1]); */
+		  /* } */
+		  return;
+	  default:
+		  break;
+	}
+
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
 	if (tf->tf_cs == GD_KT)
@@ -266,7 +388,16 @@ page_fault_handler(struct Trapframe *tf)
 	fault_va = rcr2();
 
 	// Handle kernel-mode page faults.
-
+	if ((tf->tf_cs & 3) == 0)
+	{
+		struct PageInfo* ppi = page_alloc(ALLOC_ZERO);
+		if (!ppi)
+		{
+			cprintf("kernel page fault: %e\n", -E_NO_MEM);
+			panic("fall into kernel.");
+		}
+		page_insert(kern_pgdir, ppi, (void*)fault_va, PTE_W|PTE_P);
+	}
 	// LAB 3: Your code here.
 
 	// We've already handled kernel-mode exceptions, so if we get here,

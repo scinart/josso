@@ -17,7 +17,7 @@ extern size_t npages;
 
 extern pde_t *kern_pgdir;
 
-
+#define PAGE_PRESENT(page_some_entry) ((page_some_entry)&PTE_P)
 /* This macro takes a kernel virtual address -- an address that points above
  * KERNBASE, where the machine's maximum 256MB of physical memory is mapped --
  * and returns the corresponding physical address.  It panics if you pass it a
@@ -36,7 +36,9 @@ _paddr(const char *file, int line, void *kva)
 /* This macro takes a physical address and returns the corresponding kernel
  * virtual address.  It panics if you pass an invalid physical address. */
 #define KADDR(pa) _kaddr(__FILE__, __LINE__, pa)
-
+/**
+  * physical address to kernel virtual address.
+  */
 static inline void*
 _kaddr(const char *file, int line, physaddr_t pa)
 {
@@ -68,12 +70,18 @@ void *	mmio_map_region(physaddr_t pa, size_t size);
 int	user_mem_check(struct Env *env, const void *va, size_t len, int perm);
 void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
 
+/**
+  * page to physical address.
+  */
 static inline physaddr_t
 page2pa(struct PageInfo *pp)
 {
 	return (pp - pages) << PGSHIFT;
 }
 
+/**
+  * physical address to page
+  */
 static inline struct PageInfo*
 pa2page(physaddr_t pa)
 {
@@ -82,6 +90,10 @@ pa2page(physaddr_t pa)
 	return &pages[PGNUM(pa)];
 }
 
+/**
+  * page to kernel virtual address.
+  * aka. KERNBASE+physical address.
+  */
 static inline void*
 page2kva(struct PageInfo *pp)
 {
