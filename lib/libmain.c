@@ -13,7 +13,11 @@ libmain(int argc, char **argv)
 {
 	// set thisenv to point at our Env structure in envs[].
 	// LAB 3: Your code here.
-	thisenv = 0;
+	envid_t curenvid = sys_getenvid();
+	thisenv = &envs[curenvid%NENV]; //ENV的各个位的意思又变了。好容易模个NENV对了。
+	//cprintf("envs is %p\n", envs);
+	//cprintf("libmain: thisenv is %p\n", thisenv);
+	//cprintf("thisenv->env_id is %d\n", thisenv->env_id);
 
 	// save the name of the program so that panic() can use it
 	if (argc > 0)

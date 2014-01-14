@@ -151,7 +151,7 @@ qemu-nox: $(IMAGES) pre-qemu
 	@echo "***"
 	@echo "*** Use Ctrl-a x to exit qemu"
 	@echo "***"
-	$(QEMU) -nographic $(QEMUOPTS)
+	$(QEMU) $(QEMUOPTS)
 
 qemu-gdb: $(IMAGES) pre-qemu
 	@echo "***"
@@ -163,7 +163,7 @@ qemu-nox-gdb: $(IMAGES) pre-qemu
 	@echo "***"
 	@echo "*** Now run 'gdb'." 1>&2
 	@echo "***"
-	$(QEMU) $(QEMUOPTS) -S
+	$(QEMU) -nographic $(QEMUOPTS) -S
 
 print-qemu:
 	@echo $(QEMU)
@@ -188,9 +188,6 @@ GRADEFLAGS += -v
 endif
 
 grade:
-	@echo $(MAKE) clean
-	@$(MAKE) clean || \
-	  (echo "'make clean' failed.  HINT: Do you have another running instance of JOS?" && exit 1)
 	./grade-lab$(LAB) $(GRADEFLAGS)
 
 handin: handin-check
@@ -240,7 +237,7 @@ prep-%:
 	$(V)$(MAKE) "INIT_CFLAGS=${INIT_CFLAGS} -DTEST=`case $* in *_*) echo $*;; *) echo user_$*;; esac`" $(IMAGES)
 
 run-%-nox-gdb: prep-% pre-qemu
-	$(QEMU) -nographic $(QEMUOPTS) -S
+	$(QEMU) $(QEMUOPTS) -S
 
 run-%-gdb: prep-% pre-qemu
 	$(QEMU) $(QEMUOPTS) -S

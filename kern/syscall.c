@@ -21,6 +21,38 @@ sys_cputs(const char *s, size_t len)
 	// Destroy the environment if not.
 
 	// LAB 3: Your code here.
+	uintptr_t start = (uintptr_t) ROUNDDOWN(s, PGSIZE);
+	uintptr_t end = (uintptr_t) ROUNDUP(s+len, PGSIZE);
+	uintptr_t iter;
+	int die = 0;
+	for (iter=start; iter<end; iter+=PGSIZE)
+	{
+		int non_create = 0;
+		pte_t * ppte = pgdir_walk(curenv->env_pgdir, (void*) iter, non_create);
+		if (!ppte)
+		{ //secondary page table not present or page not present.
+			die = 1;
+		}
+		else if (!PAGE_PRESENT(*ppte))
+		{
+			die = 2;
+		}
+		else if (iter > ULIM)
+		{ // 越界了
+			die = 3;
+		}
+		else if ((*ppte & PTE_U) == 0)
+		{ // no user permission.
+			die = 4;
+		}
+	}
+	if (die)
+	{
+		cprintf("Memory fault #%d\n", die);
+		env_destroy(curenv);
+		// maybe sys_yield() later.
+		// fixme: no else clause.
+	}
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
@@ -70,7 +102,7 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// Return any appropriate return value.
 	// LAB 3: Your code here.
     int32_t ret = 0;
-	
+
 	switch (syscallno) {
 	  case SYS_cputs:
 		  sys_cputs((char *)a1, (size_t)a2);

@@ -405,7 +405,7 @@ env_create(uint8_t *binary, size_t size, enum EnvType type)
 	int r = env_alloc(&env, 0);
 	if (r != 0)
 		panic("All in all something is wrong.");
-	cprintf("\n%p\n\n", env->env_pgdir);
+	cprintf("KERN: env_create: thisenv is %p\n", env);
 	env->env_type = type;
 	load_icode(env, binary, size);
 }

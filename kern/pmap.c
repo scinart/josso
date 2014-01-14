@@ -386,7 +386,6 @@ page_decref(struct PageInfo* pp)
 // table and page directory entries.
 //
 
-#define PAGE_PRESENT(page_some_entry) ((page_some_entry)&PTE_P)
 #define DEBUG_PGDIR_WALK
 #undef DEBUG_PGDIR_WALK
 pte_t *
