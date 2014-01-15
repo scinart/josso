@@ -14,10 +14,9 @@
 #include <kern/picirq.h>
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
+#include <kern/kdebug.h>
 
 static void boot_aps(void);
-
-#define LOCK_CODE
 
 void
 i386_init(void)
@@ -62,7 +61,6 @@ i386_init(void)
 #endif
 	// Starting non-boot CPUs
 	boot_aps();
-
 #ifdef LOCK_CODE
 	unlock_kernel();
 #endif
@@ -129,8 +127,13 @@ mp_main(void)
 	// only one CPU can enter the scheduler at a time!
 	//
 	// Your code here:
+#ifdef LOCK_CODE
+	lock_kernel();
+#endif
+	sched_yield();
 
 	// Remove this after you finish Exercise 4
+	cprintf("should be here. init.c:136\n");
 	for (;;);
 }
 

@@ -14,6 +14,7 @@
 #include <kern/sched.h>
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
+#include <kern/kdebug.h>
 
 struct Env *envs = NULL;		// All environments
 static struct Env *env_free_list;	// Free environment list
@@ -21,8 +22,6 @@ static struct Env *env_free_list;	// Free environment list
 
 #define ENVGENSHIFT	12		// >= LOGNENV
 
-#define DEBUG_ENVS
-#undef DEBUG_ENVS
 
 // Global descriptor table.
 //
@@ -525,6 +524,8 @@ env_pop_tf(struct Trapframe *tf)
 		"\tpopl %%es\n"
 		"\tpopl %%ds\n"
 		"\taddl $0x8,%%esp\n" /* skip tf_trapno and tf_errcode */
+		//	"\tcall unlock_kernel\n" /* that's RIGHT BEFORE switching to user mode.*/
+		//	What a pity it is static inlined.
 		"\tiret"
 		: : "g" (tf) : "memory");
 	panic("iret failed");  /* mostly to placate the compiler */
@@ -564,6 +565,9 @@ env_run(struct Env *e)
 	e->env_status = ENV_RUNNING;
 	e->env_runs++;
 	lcr3(PADDR(e->env_pgdir));
+#ifdef LOCK_CODE
+	unlock_kernel();
+#endif
 	env_pop_tf(&e->env_tf);	
 	//panic("env_run not yet implemented");
 }

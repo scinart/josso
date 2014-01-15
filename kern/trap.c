@@ -14,6 +14,7 @@
 #include <kern/picirq.h>
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
+#include <kern/kdebug.h>
 
 static struct Taskstate ts;
 
@@ -361,8 +362,10 @@ trap(struct Trapframe *tf)
 		// Acquire the big kernel lock before doing any
 		// serious kernel work.
 		// LAB 4: Your code here.
+#ifdef LOCK_CODE
+		lock_kernel();
+#endif
 		assert(curenv);
-
 		// Garbage collect if current enviroment is a zombie
 		if (curenv->env_status == ENV_DYING) {
 			env_free(curenv);

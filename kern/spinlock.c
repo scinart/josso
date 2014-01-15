@@ -17,6 +17,7 @@ struct spinlock kernel_lock = {
 };
 
 #ifdef DEBUG_SPINLOCK
+#undef DEBUG_SPINLOCK
 // Record the current call stack in pcs[] by following the %ebp chain.
 static void
 get_caller_pcs(uint32_t pcs[])
