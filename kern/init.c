@@ -17,6 +17,7 @@
 
 static void boot_aps(void);
 
+#define LOCK_CODE
 
 void
 i386_init(void)
@@ -50,9 +51,15 @@ i386_init(void)
 
 	// Acquire the big kernel lock before waking up APs
 	// Your code here:
-
+#ifdef LOCK_CODE
+	lock_kernel();
+#endif
 	// Starting non-boot CPUs
 	boot_aps();
+
+#ifdef LOCK_CODE
+	unlock_kernel();
+#endif
 
 #if defined(TEST)
 	// Don't touch -- used by grading script!

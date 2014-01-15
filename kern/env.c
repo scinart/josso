@@ -21,6 +21,8 @@ static struct Env *env_free_list;	// Free environment list
 
 #define ENVGENSHIFT	12		// >= LOGNENV
 
+#define DEBUG_ENVS
+
 // Global descriptor table.
 //
 // Set up global descriptor table (GDT) with separate segments for
@@ -191,7 +193,7 @@ env_setup_vm(struct Env *e)
 	
 	// LAB 3: Your code here.
 	e->env_pgdir = page2kva(p);
-	//cprintf("envid:%d pgdir:%p\n", e->env_id, e->env_pgdir);
+	// cprintf("envid:%d pgdir:%p\n", e->env_id, e->env_pgdir);
 	uintptr_t * ppde = &kern_pgdir[PDX(UTOP)];
 	uintptr_t * eppde = &e->env_pgdir[PDX(UTOP)];
 	// fixme: shouldn't use magic number.
@@ -278,6 +280,9 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	*newenv_store = e;
 
 	cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
+#ifdef DEBUG_ENVS
+	cprintf("env.c 281: end of env_alloc: env->env_pgdir is %p\n", e->env_pgdir);
+#endif
 	return 0;
 }
 
@@ -417,7 +422,9 @@ env_create(uint8_t *binary, size_t size, enum EnvType type)
 	int r = env_alloc(&env, 0);
 	if (r != 0)
 		panic("All in all something is wrong.");
+#ifdef DEBUG_ENVS
 	cprintf("KERN: env_create: thisenv is %p\n", env);
+#endif
 	env->env_type = type;
 	load_icode(env, binary, size);
 }
@@ -560,3 +567,11 @@ env_run(struct Env *e)
 	//panic("env_run not yet implemented");
 }
 
+
+
+
+
+
+// Local Variables:
+// eval:(progn (hs-minor-mode t) (let ((hs-state '((10775 13018 hs) (9723 10705 hs) (8932 9718 hs))) (the-mark 'scinartspecialmarku2npbmfydfnwzwnpywxnyxjr)) (dolist (i hs-state) (if (car i) (progn (goto-char (car i)) (hs-find-block-beginning) (hs-hide-block-at-point nil nil))))) (goto-char 7446) (recenter-top-bottom))
+// End:
