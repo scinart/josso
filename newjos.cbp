@@ -61,6 +61,7 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="kern/console.h" />
+		<Unit filename="kern/cpu.h" />
 		<Unit filename="kern/entry.S" />
 		<Unit filename="kern/entrypgdir.c">
 			<Option compilerVar="CC" />
@@ -80,10 +81,21 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="kern/kdebug.h" />
+		<Unit filename="kern/lapic.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="kern/monitor.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="kern/monitor.h" />
+		<Unit filename="kern/mpconfig.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/mpentry.S" />
+		<Unit filename="kern/picirq.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/picirq.h" />
 		<Unit filename="kern/pmap.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -91,6 +103,14 @@
 		<Unit filename="kern/printf.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="kern/sched.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/sched.h" />
+		<Unit filename="kern/spinlock.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="kern/spinlock.h" />
 		<Unit filename="kern/syscall.c">
 			<Option compilerVar="CC" />
 		</Unit>
