@@ -43,7 +43,13 @@ i386_init(void)
 	trap_init();
 
 	// Lab 4 multiprocessor initialization functions
+#ifdef LOCK_CODE
+	lock_kernel();
+#endif
 	mp_init();
+#ifdef LOCK_CODE
+	unlock_kernel();
+#endif
 	lapic_init();
 
 	// Lab 4 multitasking initialization functions
