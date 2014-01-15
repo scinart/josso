@@ -558,10 +558,9 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
-	if (curenv)
-		curenv->env_status = ENV_RUNNABLE;
+
 	curenv = e;
-	assert(e->env_status = ENV_RUNNABLE);
+	assert(e->env_status == ENV_RUNNABLE);
 	e->env_status = ENV_RUNNING;
 	e->env_runs++;
 	lcr3(PADDR(e->env_pgdir));

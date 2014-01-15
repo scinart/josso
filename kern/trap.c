@@ -358,6 +358,8 @@ trap(struct Trapframe *tf)
 	assert(!(read_eflags() & FL_IF));
 
 	if ((tf->tf_cs & 3) == 3) {
+		if (curenv)
+			curenv->env_status = ENV_RUNNABLE;
 		// Trapped from user mode.
 		// Acquire the big kernel lock before doing any
 		// serious kernel work.
@@ -455,6 +457,7 @@ page_fault_handler(struct Trapframe *tf)
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
+	cprintf("kern/trap.c:458\n");
 	print_trapframe(tf);
 	env_destroy(curenv);
 }
