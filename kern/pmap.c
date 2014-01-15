@@ -166,7 +166,7 @@ mem_init(void)
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
-	envs = (struct Env*) boot_alloc(NENV*sizeof(struct Env));	
+	envs = (struct Env*) boot_alloc(NENV*sizeof(struct Env));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -202,7 +202,7 @@ mem_init(void)
 	// LAB 3: Your code here.
 	boot_map_region(kern_pgdir, (uintptr_t)envs, ROUNDUP(NENV*sizeof(struct Env), PGSIZE), PADDR(envs), PTE_W);
 	boot_map_region(kern_pgdir, UENVS, UPAGES-UENVS, PADDR(envs), PTE_U);
-	
+
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -216,7 +216,7 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
 	boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W); //ref to 北大报告。
-	
+
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
@@ -235,7 +235,7 @@ mem_init(void)
 	check_kern_pgdir();
 
 	// Switch from the minimal entry page directory to the full kern_pgdir
-	// page table we just created.	Our instruction pointer should be
+	// page table we just created. Our instruction pointer should be
 	// somewhere between KERNBASE and KERNBASE+4MB right now, which is
 	// mapped the same way by both page tables.
 	//
@@ -278,7 +278,12 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
-
+	int i;
+	for (i = 0; i < NCPU; i++)
+	{
+		boot_map_region(kern_pgdir, KSTACKTOP-(i*(KSTKSIZE+KSTKGAP))-KSTKSIZE,
+						KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W);
+	}
 }
 
 // --------------------------------------------------------------
@@ -338,6 +343,10 @@ page_init(void)
 	uintptr_t KERN_PHYSICAL_BASE = 0x10000;
 	// fixme: this shouldn't be magic number.
 	mark_page_as_used(KERN_PHYSICAL_BASE, (uintptr_t)boot_alloc(0)-KERNBASE+KERN_PHYSICAL_BASE);
+	// LAB 4:
+	extern unsigned char mpentry_start[], mpentry_end[];
+	mark_page_as_used(MPENTRY_PADDR, ROUNDUP(MPENTRY_PADDR+mpentry_end-mpentry_start, PGSIZE));
+	//mark_page_as_used(MPENTRY_PADDR, MPENTRY_PADDR+PGSIZE);
 
 	for (i = 0; i < npages; i++) {
 		if(!pages[i].pp_ref){
@@ -553,7 +562,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	{// if freed pp pp should not be in the free list.
 		page_free_list = pp->pp_link;
 	}
-	
+
 
 	*ppte=page2pa(pp)|perm|PTE_P;
 	pp->pp_ref++;
@@ -614,7 +623,7 @@ page_remove(pde_t *pgdir, void *va)
 		tlb_invalidate(pgdir, va);
 		if (ppi == page_free_list)
 		{ // page removed.
-			//wrong: should be set zero anyway: *ppte=0; 
+			//wrong: should be set zero anyway: *ppte=0;
 			//wrong: should be tlb_invalidate anyway: tlb_invalidate(pgdir, va); //ref to 北大报告。
 		}
 	}
@@ -664,7 +673,18 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+
+	size = ROUNDUP(size, PGSIZE);
+	uintptr_t map_begin = base;
+	uintptr_t map_end = base + size;
+	if (map_end >= MMIOLIM)
+		panic ("mmio_map_region overflowed!");
+
+	boot_map_region(kern_pgdir, map_begin, size, pa, PTE_PCD|PTE_PWT|PTE_W);
+	base += size;
+
+	return((void*)map_begin); //我傻了居然return了一个(void*)base。
+	// panic("mmio_map_region not implemented");
 }
 
 static uintptr_t user_mem_check_addr;
@@ -1169,5 +1189,5 @@ check_page_installed_pgdir(void)
 
 
 /* Local Variables: */
-/* eval:(progn (hs-minor-mode t) (let ((hs-state '((24378 29276 hs) (23948 24306 hs) (20797 22365 hs) (17391 17945 hs) (15045 16021 hs) (14232 14627 hs) (12671 14227 hs) (11526 12494 hs) (11414 11456 hs) (11286 11374 hs) (816 873 hs) (914 1537 hs) (2662 3521 hs) (8291 8761 hs) (8827 8942 hs) (8966 10356 hs) (10361 10699 hs) (10747 11024 hs) (11029 11135 hs) (11173 11281 hs))) (the-mark 'scinartspecialmarku2npbmfydfnwzwnpywxnyxjr)) (dolist (i hs-state) (if (car i) (progn (goto-char (car i)) (hs-find-block-beginning) (hs-hide-block-at-point nil nil))))) (goto-char 8226) (recenter-top-bottom)) */
+/* eval:(progn (hs-minor-mode t) (let ((hs-state '((13889 14857 hs) (14970 16499 hs))) (the-mark 'scinartspecialmarku2npbmfydfnwzwnpywxnyxjr)) (dolist (i hs-state) (if (car i) (progn (goto-char (car i)) (hs-find-block-beginning) (hs-hide-block-at-point nil nil))))) (goto-char 13822) (recenter-top-bottom)) */
 /* End: */

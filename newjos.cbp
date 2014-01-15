@@ -100,6 +100,22 @@
 		</Unit>
 		<Unit filename="kern/trap.h" />
 		<Unit filename="kern/trapentry.S" />
+		<Unit filename="lib/console.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lib/entry.S" />
+		<Unit filename="lib/exit.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lib/libmain.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lib/panic.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lib/printf.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="lib/printfmt.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -107,6 +123,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="lib/string.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lib/syscall.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Extensions>
