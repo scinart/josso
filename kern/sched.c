@@ -22,6 +22,7 @@ sched_yield(void)
 	// If no envs are runnable, but the environment previously
 	// running on this CPU is still ENV_RUNNING, it's okay to
 	// choose that environment.
+	// This ↑ rule not valid. I've set env to ENV_RUNNABLE as long as they fall inte traps.
 	//
 	// Never choose an environment that's currently running on
 	// another CPU (env_status == ENV_RUNNING). If there are

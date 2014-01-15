@@ -28,7 +28,7 @@ static struct Env *env_free_list;	// Free environment list
 // Set up global descriptor table (GDT) with separate segments for
 // kernel mode and user mode.  Segments serve many purposes on the x86.
 // We don't use any of their memory-mapping capabilities, but we need
-// them to switch privilege levels. 
+// them to switch privilege levels.
 //
 // The kernel and user segments are identical except for the DPL.
 // To load the SS register, the CPL must equal the DPL.  Thus,
@@ -190,7 +190,7 @@ env_setup_vm(struct Env *e)
 	//	is an exception -- you need to increment env_pgdir's
 	//	pp_ref for env_free to work correctly.
 	//    - The functions in kern/pmap.h are handy.
-	
+
 	// LAB 3: Your code here.
 	e->env_pgdir = page2kva(p);
 	// cprintf("envid:%d pgdir:%p\n", e->env_id, e->env_pgdir);
@@ -203,7 +203,7 @@ env_setup_vm(struct Env *e)
 		ppde++;
 		eppde++;
 	}
-	
+
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_P | PTE_U;
@@ -560,14 +560,18 @@ env_run(struct Env *e)
 	// LAB 3: Your code here.
 
 	curenv = e;
-	assert(e->env_status == ENV_RUNNABLE);
+	if (! (e->env_status == ENV_RUNNABLE))
+	{
+		cprintf("kern/env.c: env->status is %d\n", e->env_status);
+		cprintf("Envs #%d", e->env_id);
+	}
 	e->env_status = ENV_RUNNING;
 	e->env_runs++;
 	lcr3(PADDR(e->env_pgdir));
 #ifdef LOCK_CODE
 	unlock_kernel();
 #endif
-	env_pop_tf(&e->env_tf);	
+	env_pop_tf(&e->env_tf);
 	//panic("env_run not yet implemented");
 }
 
