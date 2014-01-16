@@ -16,6 +16,8 @@
 #include <kern/spinlock.h>
 #include <kern/kdebug.h>
 
+#define LOCK_CODE
+
 static void boot_aps(void);
 
 void
@@ -42,11 +44,11 @@ i386_init(void)
 	trap_init();
 
 	// Lab 4 multiprocessor initialization functions
-#ifdef LOCK_CODE
+#ifdef LOCK_CODEEE
 	lock_kernel();
 #endif
 	mp_init();
-#ifdef LOCK_CODE
+#ifdef LOCK_CODEEE
 	unlock_kernel();
 #endif
 	lapic_init();
@@ -102,7 +104,7 @@ boot_aps(void)
 		if (c == cpus + cpunum())  // We've started already.
 			continue;
 
-		// Tell mpentry.S what stack to use 
+		// Tell mpentry.S what stack to use
 		mpentry_kstack = percpu_kstacks[c - cpus] + KSTKSIZE;
 		// Start the CPU at mpentry_start
 		lapic_startap(c->cpu_id, PADDR(code));
@@ -116,7 +118,7 @@ boot_aps(void)
 void
 mp_main(void)
 {
-	// We are in high EIP now, safe to switch to kern_pgdir 
+	// We are in high EIP now, safe to switch to kern_pgdir
 	lcr3(PADDR(kern_pgdir));
 	cprintf("SMP: CPU %d starting\n", cpunum());
 
@@ -136,8 +138,8 @@ mp_main(void)
 	sched_yield();
 
 	// Remove this after you finish Exercise 4
-	cprintf("should be here. init.c:136\n");
-	for (;;);
+	cprintf("should be here. init.c:141\n");
+	// for (;;);
 }
 
 /*

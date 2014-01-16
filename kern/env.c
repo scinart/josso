@@ -22,6 +22,10 @@ static struct Env *env_free_list;	// Free environment list
 
 #define ENVGENSHIFT	12		// >= LOGNENV
 
+#define DEBUG_ENVS
+#undef DEBUG_ENVS
+
+#define LOCK_CODE
 
 // Global descriptor table.
 //

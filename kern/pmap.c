@@ -711,6 +711,43 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
+	const char* s = (const char*) va;
+	uintptr_t start = (uintptr_t) ROUNDDOWN(s, PGSIZE);
+	uintptr_t end = (uintptr_t) ROUNDUP(s+len, PGSIZE);
+	uintptr_t iter;
+	int die = 0;
+	for (iter=start; iter<end; iter+=PGSIZE)
+	{
+		int non_create = 0;
+		pte_t * ppte = pgdir_walk(env->env_pgdir, (void*) iter, non_create);
+		if (!ppte)
+		{ //secondary page table not present or page not present.
+			die = 1;
+			break;
+		}
+		else if (!PAGE_PRESENT(*ppte))
+		{
+			die = 2;
+			break;
+		}
+		else if (iter > ULIM)
+		{ // 越界了
+			die = 3;
+			break;
+		}
+		else if ((*ppte & (perm|PTE_P)) != (perm|PTE_P))
+		{ // no user permission.
+			die = 4;
+			break;
+		}
+	}
+	if (die)
+	{
+		cprintf("pmap.c:746 user_mem_check fault #%d, s is %p, len is %x\n", die, s, len);
+		user_mem_check_addr = iter+((uintptr_t)s-start);
+		// cprintf("[%08x] user_mem_check assertion failure for va %08x\n", env->env_id, iter+((uintptr_t)s-start));
+		return -E_FAULT;
+	}
 
 	return 0;
 }

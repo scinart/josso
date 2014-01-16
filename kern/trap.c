@@ -16,6 +16,8 @@
 #include <kern/spinlock.h>
 #include <kern/kdebug.h>
 
+#define LOCK_CODE
+
 static struct Taskstate ts;
 
 /* For debugging, so print_trapframe can distinguish between printing
@@ -454,9 +456,35 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 4: Your code here.
 
+	// ref to 北大报告
+	if (curenv->env_pgfault_upcall != NULL)
+	{
+		struct UTrapframe *utf;
+		if (UXSTACKTOP-PGSIZE <= tf->tf_esp && tf->tf_esp < UXSTACKTOP)
+			utf = (struct UTrapframe *)
+				(tf->tf_esp - sizeof(struct UTrapframe) - 4);
+		else
+			utf = (struct UTrapframe *)
+				(UXSTACKTOP - sizeof(struct UTrapframe));
+// 为什么要先减呢?注意,栈是自顶向下生长的,而我们的内存访问是自底向上的!
+// 因此指针当然要指向一片内存区域的【低端】起始地址!
+		user_mem_assert(curenv, (void *)utf, sizeof(struct UTrapframe), PTE_U|PTE_W);
+		utf->utf_eflags = tf->tf_eflags;
+		utf->utf_eip = tf->tf_eip;
+		utf->utf_err = tf->tf_err;utf->utf_esp = tf->tf_esp;
+		utf->utf_fault_va = fault_va;
+		utf->utf_regs = tf->tf_regs;
+		curenv->env_tf.tf_eip = (uint32_t) curenv->env_pgfault_upcall;
+		curenv->env_tf.tf_esp = (uint32_t) utf;
+		env_run(curenv); // This does not return
+	}
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
+	if (!fault_va)
+	{
+		cprintf("Maybe panic\n");
+	}
 	cprintf("kern/trap.c:458\n");
 	print_trapframe(tf);
 	env_destroy(curenv);

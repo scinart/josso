@@ -18,11 +18,5 @@ struct Eipdebuginfo {
 int debuginfo_eip(uintptr_t eip, struct Eipdebuginfo *info);
 
 
-#define LOCK_CODE
-// #undef LOCK_CODE
-
-#define DEBUG_ENVS
-#undef DEBUG_ENVS
-
 
 #endif
