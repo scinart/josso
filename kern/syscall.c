@@ -271,9 +271,9 @@ sys_page_map(envid_t srcenvid, void *srcva,
 		return -E_INVAL;
 	struct Env *srcenv, *dstenv;
 	int r;
-	if ((r = envid2env (srcenvid, &srcenv, 1)) < 0)
+	if ((r = envid2env(srcenvid, &srcenv, 1)) < 0)
 		return -E_BAD_ENV;
-	if ((r = envid2env (dstenvid, &dstenv, 1)) < 0)
+	if ((r = envid2env(dstenvid, &dstenv, 1)) < 0)
 		return -E_BAD_ENV;
 	pte_t *ppte;
 	struct PageInfo *ppi;

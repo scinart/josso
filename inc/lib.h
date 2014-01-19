@@ -74,7 +74,8 @@ envid_t	ipc_find_env(enum EnvType type);
 
 // fork.c
 #define	PTE_SHARE	0x400
-envid_t	fork(void);
+envid_t	(*fork)(void);
+envid_t	dumbfork(void);
 envid_t	sfork(void);	// Challenge!
 
 

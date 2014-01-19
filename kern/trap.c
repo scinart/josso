@@ -421,7 +421,6 @@ page_fault_handler(struct Trapframe *tf)
 		}
 		page_insert(kern_pgdir, ppi, (void*)fault_va, PTE_W|PTE_P);
 	}
-	// LAB 3: Your code here.
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
