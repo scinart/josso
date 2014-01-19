@@ -311,75 +311,48 @@ sys_page_unmap(envid_t envid, void *va)
 static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
-// If srcva < UTOP, then also send page currently mapped at 'srcva,'
-// so that receiver gets a duplicate mapping of the same page.
-//
-// The send fails with a return value of -E_IPC_NOT_RECV if the
-// target is not blocked, waiting for an IPC.
-//
-// The send also can fail for the other reasons listed below.
-//
-// Otherwise, the send succeeds, and the target's ipc fields are
-// updated as follows:
-//    env_ipc_recving is set to 0 to block future sends;
-//    env_ipc_from is set to the sending envid;
-//    env_ipc_value is set to the 'value' parameter;
-//    env_ipc_perm is set to 'perm' if a page was transferred, 0 otherwise.
-// The target environment is marked runnable again, returning 0
-// from the paused sys_ipc_recv system call.  (Hint: does the
-// sys_ipc_recv function ever actually return?)
-//
-// If the sender wants to send a page but the receiver isn't asking for one,
-// then no page mapping is transferred, but no error occurs.
-// The ipc only happens when no errors occur.
-//
-// Returns 0 on success, < 0 on error.
-// Errors are:
-//	-E_BAD_ENV if environment envid doesn't currently exist.
-//		(No need to check permissions.)
+	struct Env *dstenv;
 	int r;
-	struct Env* dstenv;
-	if ((r = envid2env(envid, &dstenv, 1)))
+// get target env (may not exist)
+	if ((r = envid2env (envid, &dstenv, 0)) < 0)
 		return -E_BAD_ENV;
-//	-E_IPC_NOT_RECV if envid is not currently blocked in sys_ipc_recv,
-//		or another environment managed to send first.
-	if (!dstenv->env_ipc_recving)
-		return -E_IPC_NOT_RECV;
-//	-E_INVAL if srcva < UTOP but srcva is not page-aligned.
-	if (srcva != ROUNDUP(srcva, PGSIZE))
+// if envid is not currently blocked in sys_ipc_recv, or another environment managed to send first.
+		if (!dstenv->env_ipc_recving || dstenv->env_ipc_from != 0)
+			return -E_IPC_NOT_RECV;
+// if srcva < UTOP but srcva is not page-aligned
+	if (srcva < (void *)UTOP && ROUNDDOWN(srcva, PGSIZE) != srcva)
 		return -E_INVAL;
-
-	pte_t * ppte = pgdir_walk(curenv->env_pgdir, srcva, 0);
-//	-E_INVAL if srcva < UTOP but srcva is not mapped in the caller's
-//		address space.
-	if (!ppte)
+// if srcva < UTOP and perm is inappropriate (see sys_page_alloc)
+	if (
+		srcva < (void *)UTOP
+		&&(!(perm & PTE_U)||!(perm & PTE_P)||(perm & ~PTE_SYSCALL)!=0))
 		return -E_INVAL;
-//	-E_INVAL if srcva < UTOP and perm is inappropriate
-//		(see sys_page_alloc).
-	pte_t pte = *ppte;
-	if (srcva < (void*)UTOP && (((pte&PTE_P) != PTE_P) ||
-							   ((pte&PTE_U) != PTE_U)))
+	pte_t *pte;
+	struct PageInfo *pp;
+// if srcva < UTOP but srcva is not mapped in the caller's address space.
+		if (srcva < (void *)UTOP && (pp = page_lookup (curenv->env_pgdir, srcva, &pte)) == NULL)
+			return -E_INVAL;
+// if (perm & PTE_W), but srcva is read-only in the current environment's address space.
+	if (srcva < (void *)UTOP && (perm & PTE_W) > 0 && (*pte & PTE_W) == 0)
 		return -E_INVAL;
-//	-E_INVAL if (perm & PTE_W), but srcva is read-only in the
-//		current environment's address space.
-	if ((perm&PTE_W) && !(pte&PTE_W))
-		return -E_INVAL;
-//	-E_NO_MEM if there's not enough memory to map srcva in envid's
-//		address space.
-	struct PageInfo* ppi = page_lookup(curenv->env_pgdir, srcva, &ppte);
-	if ((r = page_insert(dstenv->env_pgdir, ppi, srcva, perm)))
-		return -E_NO_MEM;
-
-	dstenv->env_ipc_perm = perm;
+// send a page
+// if there's not enough memory to map srcva in envid's address space.
+	if (
+		srcva < (void *)UTOP
+		&& dstenv->env_ipc_dstva != 0) {
+		r = page_insert (dstenv->env_pgdir, pp, dstenv->env_ipc_dstva,
+						 perm);
+		if (r < 0)
+			return -E_NO_MEM;
+		dstenv->env_ipc_perm = perm;
+	}
 	dstenv->env_ipc_from = curenv->env_id;
 	dstenv->env_ipc_value = value;
 	dstenv->env_status = ENV_RUNNABLE;
 	dstenv->env_ipc_recving = 0;
 	dstenv->env_tf.tf_regs.reg_eax = 0;
-
+// sys_ipc_recv will return 0
 	return 0;
-	// LAB 4: Your code here.
-	// panic("sys_ipc_try_send not implemented");
 }
 
 // Block until a value is ready.  Record that you want to receive
