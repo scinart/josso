@@ -299,10 +299,11 @@ trap_dispatch(struct Trapframe *tf)
 		  return;
 	  case IRQ_OFFSET:
 		  // clock interrupt
-		  // sched_yield(); not defined yet.
+		  lapic_eoi(); //lapic_eoi???? 这玩意好高级。
+		  sched_yield();
 		  break;
 	  case IRQ_OFFSET + 1:
-		  //kbd_intr();
+		  kbd_intr();
 		  return;
 	  case IRQ_OFFSET + 14:
 		  //这段代码参考《微型计算机组成原理》一书吧。

@@ -50,14 +50,6 @@ sched_yield(void)
 		}
 	}
 
-	// int i;
-	// // cprintf("\n%d\n", curenv->env_id);
-	// for (i = 0; i < NENV; i++)
-	// {
-	// 	if (envs[i].env_status == ENV_RUNNABLE)
-	// 		env_run(&envs[i]);
-	// }
-
 	// sched_halt never returns
 	sched_halt();
 }
